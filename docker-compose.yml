@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2025-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${DB_PASSWORD}
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD — copie .env.example para .env}
       MSSQL_PID: Developer
     ports:
       - "1433:1433"
@@ -14,7 +14,7 @@ services:
     build: ./backend/CadastroCurriculos.Api
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      ConnectionStrings__Default: "Server=db,1433;Database=${DB_NAME};User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
+      ConnectionStrings__Default: "Server=db,1433;Database=${DB_NAME:?defina DB_NAME — copie .env.example para .env};User Id=sa;Password=${DB_PASSWORD:?defina DB_PASSWORD — copie .env.example para .env};TrustServerCertificate=True;Connect Timeout=5;"
     ports:
       - "5000:5000"
     depends_on:

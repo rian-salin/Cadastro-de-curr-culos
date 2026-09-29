@@ -8,10 +8,12 @@ namespace CadastroCurriculos.Api.Controllers;
 public class HealthController : ControllerBase
 {
     private readonly AppDbContext _dbContext;
+    private readonly ILogger<HealthController> _logger;
 
-    public HealthController(AppDbContext dbContext)
+    public HealthController(AppDbContext dbContext, ILogger<HealthController> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -22,11 +24,15 @@ public class HealthController : ControllerBase
         {
             // No migrations exist yet in this stage, so make sure the
             // database itself exists before checking connectivity to it.
+            // TODO: remove once migrations exist — EnsureCreated and Migrate
+            // are mutually exclusive, and this will need to move out of a
+            // per-request health check before the first migration is added.
             await _dbContext.Database.EnsureCreatedAsync();
             isHealthy = await _dbContext.Database.CanConnectAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Health check could not reach the database");
             isHealthy = false;
         }
 
