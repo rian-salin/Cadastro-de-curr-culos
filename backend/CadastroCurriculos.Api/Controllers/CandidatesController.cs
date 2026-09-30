@@ -1,0 +1,55 @@
+using CadastroCurriculos.Api.Contracts;
+using CadastroCurriculos.Api.Data;
+using CadastroCurriculos.Api.Domain;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace CadastroCurriculos.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class CandidatesController : ControllerBase
+{
+    private readonly AppDbContext _dbContext;
+    private readonly ILogger<CandidatesController> _logger;
+
+    public CandidatesController(AppDbContext dbContext, ILogger<CandidatesController> logger)
+    {
+        _dbContext = dbContext;
+        _logger = logger;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<CandidateResponse>> Create(CreateCandidateRequest request, CancellationToken cancellationToken)
+    {
+        var candidate = new Candidate
+        {
+            FullName = request.FullName!,
+            Email = request.Email!,
+            Phone = request.Phone,
+            AreaOfInterest = request.AreaOfInterest,
+            ProfessionalSummary = request.ProfessionalSummary,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+
+        _dbContext.Candidates.Add(candidate);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id = candidate.Id }, CandidateResponse.FromEntity(candidate));
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<CandidateResponse>> GetById(int id, CancellationToken cancellationToken)
+    {
+        var candidate = await _dbContext.Candidates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (candidate is null)
+        {
+            return Problem(title: "Candidato não encontrado.", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        return CandidateResponse.FromEntity(candidate);
+    }
+}
