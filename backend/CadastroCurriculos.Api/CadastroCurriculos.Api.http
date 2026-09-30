@@ -1,6 +1,22 @@
-@CadastroCurriculos.Api_HostAddress = http://localhost:5205
+@host = http://localhost:5000
 
-GET {{CadastroCurriculos.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Health-check
+GET {{host}}/api/health
 
-###
+### Cadastrar candidato
+POST {{host}}/api/candidates
+Content-Type: application/json
+
+{
+  "fullName": "Maria Souza",
+  "email": "maria.souza@example.com",
+  "phone": "(11) 98888-7777",
+  "areaOfInterest": "Desenvolvimento Backend",
+  "professionalSummary": "Desenvolvedora .NET com 5 anos de experiência em APIs REST."
+}
+
+### Listar candidatos
+GET {{host}}/api/candidates
+
+### Detalhes de um candidato
+GET {{host}}/api/candidates/1
