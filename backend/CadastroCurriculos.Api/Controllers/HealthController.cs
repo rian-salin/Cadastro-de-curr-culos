@@ -22,11 +22,11 @@ public class HealthController : ControllerBase
         bool isHealthy;
         try
         {
-            // No migrations exist yet in this stage, so make sure the
-            // database itself exists before checking connectivity to it.
-            // TODO: remove once migrations exist — EnsureCreated and Migrate
-            // are mutually exclusive, and this will need to move out of a
-            // per-request health check before the first migration is added.
+            // Ainda não há migrations nesta etapa, então garante que o banco
+            // exista antes de testar a conexão com ele.
+            // TODO: remover quando houver migrations — EnsureCreated e Migrate
+            // são mutuamente exclusivos, e isto precisa sair do health-check
+            // (que roda a cada requisição) antes da primeira migration.
             await _dbContext.Database.EnsureCreatedAsync();
             isHealthy = await _dbContext.Database.CanConnectAsync();
         }
