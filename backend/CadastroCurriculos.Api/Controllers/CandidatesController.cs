@@ -2,6 +2,7 @@ using CadastroCurriculos.Api.Contracts;
 using CadastroCurriculos.Api.Data;
 using CadastroCurriculos.Api.Domain;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CadastroCurriculos.Api.Controllers;
@@ -10,6 +11,9 @@ namespace CadastroCurriculos.Api.Controllers;
 [Route("api/[controller]")]
 public class CandidatesController : ControllerBase
 {
+    private const int SqlUniqueIndexViolation = 2601;
+    private const int SqlUniqueConstraintViolation = 2627;
+
     private readonly AppDbContext _dbContext;
     private readonly ILogger<CandidatesController> _logger;
 
@@ -33,7 +37,20 @@ public class CandidatesController : ControllerBase
         };
 
         _dbContext.Candidates.Add(candidate);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            _logger.LogInformation("Candidate creation rejected: e-mail already registered");
+            ModelState.AddModelError("email", "Já existe um candidato com este e-mail.");
+            return ValidationProblem(
+                title: "Candidato já cadastrado.",
+                statusCode: StatusCodes.Status409Conflict,
+                modelStateDictionary: ModelState);
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = candidate.Id }, CandidateResponse.FromEntity(candidate));
     }
@@ -52,4 +69,7 @@ public class CandidatesController : ControllerBase
 
         return CandidateResponse.FromEntity(candidate);
     }
+
+    private static bool IsUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is SqlException { Number: SqlUniqueIndexViolation or SqlUniqueConstraintViolation };
 }

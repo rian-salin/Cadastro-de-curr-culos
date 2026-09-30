@@ -173,6 +173,18 @@ public class CandidatesEndpointsTests
         Assert.Equal(created, fetched);
     }
 
+    [Fact]
+    public async Task Post_WithDuplicateEmail_ReturnsConflict()
+    {
+        var email = UniqueEmail();
+        await CreateCandidate(new { fullName = "Maria Souza", email });
+
+        var response = await PostCandidate(new { fullName = "Maria S.", email = $" {email.ToUpperInvariant()} " });
+
+        var problem = await AssertValidationError(response, HttpStatusCode.Conflict, "email", "Já existe um candidato com este e-mail.");
+        Assert.Equal("Candidato já cadastrado.", problem.Title);
+    }
+
     private static async Task<ValidationProblemDetails> AssertValidationError(
         HttpResponseMessage response, HttpStatusCode expectedStatus, string field, string expectedMessage)
     {
