@@ -1,4 +1,5 @@
 import { Link, Navigate, Route, Routes } from 'react-router'
+import CandidateDetailPage from './pages/CandidateDetailPage'
 import CandidateListPage from './pages/CandidateListPage'
 import NewCandidatePage from './pages/NewCandidatePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -18,6 +19,7 @@ function App() {
           <Route path="/" element={<Navigate to="/candidates" replace />} />
           <Route path="/candidates" element={<CandidateListPage />} />
           <Route path="/candidates/new" element={<NewCandidatePage />} />
+          <Route path="/candidates/:id" element={<CandidateDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
