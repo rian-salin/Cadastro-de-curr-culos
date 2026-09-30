@@ -6,3 +6,4 @@
 docs/
 .worktrees/
 .superpowers/
+.playwright-mcp/

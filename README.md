@@ -16,7 +16,7 @@ Sistema full-stack (React + ASP.NET Core + SQL Server) orquestrado via Docker Co
    docker compose up --build
    ```
 
-3. Acesse http://localhost:3000 — a página deve mostrar `API: ok · Banco: connected`.
+3. Acesse http://localhost:3000 — a listagem de candidatos é a tela inicial.
    O Compose só inicia a API (e, depois dela, o frontend) quando o SQL Server
    responde ao healthcheck, e a API aplica as migrations do banco sozinha ao
    subir. Nos primeiros segundos após o `up` a página ainda não abre, enquanto o
@@ -29,6 +29,18 @@ Sistema full-stack (React + ASP.NET Core + SQL Server) orquestrado via Docker Co
 | Frontend (Nginx) | http://localhost:3000 |
 | Backend (API direta) | http://localhost:5000 |
 | SQL Server | localhost:1433 |
+
+## Telas
+
+| Rota | Tela |
+|---|---|
+| `/candidates` | listagem, do candidato mais recente para o mais antigo |
+| `/candidates/new` | formulário de cadastro |
+| `/candidates/{id}` | detalhes do candidato |
+
+O formulário valida os mesmos campos que a API, com as mesmas mensagens, antes
+de enviar — e continua exibindo os erros que a API devolve (campo inválido,
+e-mail já cadastrado). A raiz (`/`) redireciona para a listagem.
 
 ## API
 
@@ -87,6 +99,17 @@ socket do Docker no container de testes). Leva cerca de 30 segundos.
 outro sistema, rode `dotnet test backend/CadastroCurriculos.sln` diretamente
 com o SDK .NET 10 e o Docker Desktop instalados.
 
+Os testes do frontend rodam com Node local, dentro de `frontend/`:
+
+```
+npm install
+npm test
+```
+
+São testes de componente com Vitest e Testing Library (jsdom), com a camada de
+API mockada: cobrem a validação do formulário, as mensagens de erro vindas da
+API, a listagem e a tela de detalhes.
+
 ## Tecnologias e versões
 
 | Camada | Tecnologia | Versão |
@@ -94,7 +117,11 @@ com o SDK .NET 10 e o Docker Desktop instalados.
 | Frontend | React | 19.2 |
 | Frontend | TypeScript | 6.0 |
 | Frontend | Vite | 8.3 |
-| Frontend | oxlint | 1.81 |
+| Frontend | oxlint | 1.86 |
+| Frontend | react-router | 8.4.0 |
+| Testes (frontend) | Vitest | 5.0.3 |
+| Testes (frontend) | Testing Library (react / dom / user-event / jest-dom) | 16.3.3 / 10.4.2 / 14.6.7 / 7.0.1 |
+| Testes (frontend) | jsdom | 30.1.1 |
 | Servidor web | Nginx | alpine |
 | Backend | ASP.NET Core Web API | .NET 10 |
 | Backend | Microsoft.AspNetCore.OpenApi | 10.0.12 |
@@ -115,3 +142,7 @@ com o SDK .NET 10 e o Docker Desktop instalados.
   mensagens técnicas em inglês geradas pelo ASP.NET Core. O frontend sempre
   envia JSON válido, então isso só aparece chamando a API diretamente.
 - A listagem não tem paginação nem busca.
+- Não há edição nem exclusão de candidato: o cadastro é só de entrada e
+  consulta.
+- A tela de detalhes é acessível por URL direta, mas o app não tem
+  autenticação: qualquer pessoa com acesso à porta vê todos os candidatos.
