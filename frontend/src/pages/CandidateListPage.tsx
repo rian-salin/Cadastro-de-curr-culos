@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { fetchCandidates, type CandidateSummary } from '../api/candidates'
 import { formatDateTime } from '../formatDateTime'
 
@@ -8,8 +8,23 @@ type LoadState =
   | { status: 'loaded'; candidates: CandidateSummary[] }
   | { status: 'error' }
 
+type NavigationState = { savedCandidateName?: string } | null
+
 function CandidateListPage() {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Lido uma vez para o estado local; o registro do histórico é limpo abaixo,
+  // para um F5 não repetir a mensagem.
+  const [savedCandidateName] = useState(
+    () => (location.state as NavigationState)?.savedCandidateName ?? null,
+  )
+
+  useEffect(() => {
+    if (location.state) {
+      void navigate(location.pathname, { replace: true })
+    }
+  }, [location.pathname, location.state, navigate])
 
   const load = useCallback(() => {
     setState({ status: 'loading' })
@@ -24,6 +39,10 @@ function CandidateListPage() {
   return (
     <section>
       <h2>Candidatos</h2>
+
+      {savedCandidateName && (
+        <p className="banner banner-success">Cadastro de {savedCandidateName} salvo.</p>
+      )}
 
       {state.status === 'loading' && <p>Carregando candidatos...</p>}
 

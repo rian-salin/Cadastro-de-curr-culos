@@ -87,4 +87,18 @@ describe('CandidateListPage', () => {
 
     expect(await screen.findByText('Segundo Candidato')).toBeInTheDocument()
   })
+
+  it('mostra a mensagem de cadastro salvo vinda da navegação', async () => {
+    fetchCandidatesMock.mockResolvedValue(candidates)
+
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/candidates', state: { savedCandidateName: 'Maria Souza' } }]}
+      >
+        <CandidateListPage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Cadastro de Maria Souza salvo.')).toBeInTheDocument()
+  })
 })
