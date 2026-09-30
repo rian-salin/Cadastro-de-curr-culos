@@ -20,3 +20,15 @@ GET {{host}}/api/candidates
 
 ### Detalhes de um candidato
 GET {{host}}/api/candidates/1
+
+### Extrair nome, e-mail e telefone de um currículo em PDF
+# Troque ./curriculo.pdf pelo caminho de um PDF seu (relativo a este arquivo).
+POST {{host}}/api/resumes/extract
+Content-Type: multipart/form-data; boundary=CurriculoBoundary
+
+--CurriculoBoundary
+Content-Disposition: form-data; name="file"; filename="curriculo.pdf"
+Content-Type: application/pdf
+
+< ./curriculo.pdf
+--CurriculoBoundary--

@@ -53,6 +53,7 @@ na 5000). Erros seguem o formato `ProblemDetails`; erros de campo vêm em
 | `POST` | `/api/candidates` | `201` candidato criado (header `Location`) · `400` campos inválidos · `409` e-mail já cadastrado |
 | `GET` | `/api/candidates` | `200` lista resumida, do mais recente para o mais antigo |
 | `GET` | `/api/candidates/{id}` | `200` candidato completo · `404` não encontrado |
+| `POST` | `/api/resumes/extract` | `200` campos identificados (`null` no que não foi achado) · `400` arquivo ausente, acima de 5 MB ou que não é PDF · `422` PDF ilegível ou sem texto |
 | `GET` | `/api/health` | `200` API e banco no ar · `503` banco indisponível |
 
 Exemplo de cadastro:
@@ -125,6 +126,7 @@ API, a listagem e a tela de detalhes.
 | Servidor web | Nginx | alpine |
 | Backend | ASP.NET Core Web API | .NET 10 |
 | Backend | Microsoft.AspNetCore.OpenApi | 10.0.12 |
+| Backend | PdfPig | 0.1.16 |
 | ORM | Microsoft.EntityFrameworkCore.SqlServer | 10.0.12 |
 | ORM | Microsoft.EntityFrameworkCore.Design / dotnet-ef | 10.0.12 |
 | Banco de dados | SQL Server | 2025 |
