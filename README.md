@@ -42,6 +42,10 @@ O formulário valida os mesmos campos que a API, com as mesmas mensagens, antes
 de enviar — e continua exibindo os erros que a API devolve (campo inválido,
 e-mail já cadastrado). A raiz (`/`) redireciona para a listagem.
 
+No topo do formulário, um bloco opcional recebe um currículo em PDF: o que for
+identificado (nome, e-mail e telefone) preenche os campos, que continuam
+editáveis antes de salvar. Detalhes em [Cadastro com PDF](#cadastro-com-pdf).
+
 ## API
 
 Todas as rotas ficam sob `/api` (acessíveis pela porta 3000 via Nginx ou direto
@@ -84,13 +88,58 @@ nulos e o e-mail é gravado em minúsculas.
 Exemplos prontos para o VS Code / Rider em
 `backend/CadastroCurriculos.Api/CadastroCurriculos.Api.http`.
 
+## Cadastro com PDF
+
+O PDF é opcional e só preenche o formulário: quem salva é sempre o mesmo
+`POST /api/candidates` do cadastro manual, com as mesmas regras de validação.
+
+1. Em `/candidates/new`, escolha um PDF no bloco "Tem o currículo em PDF?".
+2. O navegador confere tipo e tamanho e envia o arquivo para
+   `POST /api/resumes/extract`. A API valida de novo (até 5 MB e a assinatura
+   `%PDF-` no início do arquivo, sem confiar no `Content-Type`), extrai o texto
+   com o PdfPig e procura nome, e-mail e telefone.
+3. O que for identificado preenche os campos; o que não for fica como estava. Uma
+   mensagem diz o que foi preenchido e o que falta preencher.
+4. Arquivo inválido, arquivo grande demais ou PDF ilegível mostram uma mensagem e
+   não bloqueiam o formulário: dá para preencher e salvar à mão.
+
+Nada do PDF é gravado: nem o arquivo, nem o texto extraído.
+
+### Como a extração funciona
+
+| Campo | Heurística |
+|---|---|
+| E-mail | o primeiro endereço no formato `nome@dominio.ext` do texto, em minúsculas |
+| Telefone | o primeiro número brasileiro com DDD, com ou sem `+55` e parênteses, celular ou fixo: `(11) 98888-7777`, `+55 11 98888-7777`, `11988887777`, `(11) 3333-4444` |
+| Nome | uma linha `Nome:` ou `Nome completo:` em qualquer ponto do texto; senão, a primeira linha, entre as 5 primeiras não vazias, com 2 a 6 palavras só de letras (acentos, `'` e `-` aceitos) e sem palavras de cabeçalho como "Currículo" ou "Dados Pessoais" |
+
+Antes de procurar o nome, cada linha é quebrada nos separadores `|`, `•` e `·`,
+para cobrir cabeçalhos como `Maria Souza | maria@exemplo.com | (11) 98888-7777`.
+
+### Limitações da extração
+
+- **PDF escaneado** (só imagem, sem camada de texto) não é lido: não há OCR. A
+  tela avisa e o cadastro segue manual.
+- **Layouts em colunas ou tabelas** podem sair com as linhas fora de ordem, e o
+  nome ou o telefone podem não ser encontrados.
+- **Nome** que não está entre as 5 primeiras linhas nem rotulado com `Nome:` não
+  é encontrado. Uma linha de título antes do nome, como "Desenvolvedora
+  Backend", pode ser tomada por nome. A caixa é mantida como está no PDF
+  (`MARIA SOUZA` chega em maiúsculas).
+- **Telefone** só no padrão brasileiro e com DDD: número sem DDD ou estrangeiro
+  não é reconhecido. Exigir o DDD é o que evita confundir intervalos de anos,
+  CEP e CPF com telefone.
+- **Só o primeiro** e-mail e o primeiro telefone do texto são usados.
+- **PDF protegido por senha** ou corrompido não é lido.
+- Área de interesse e resumo profissional não são extraídos.
+
 ## Testes
 
 ```
 make test
 ```
 
-Roda os testes de integração do backend num container do SDK .NET 10. Cada
+Roda os testes do backend (integração dos endpoints e unitários da heurística de extração do PDF) num container do SDK .NET 10. Cada
 execução sobe um SQL Server descartável via Testcontainers e aplica as
 migrations reais, então é preciso ter o Docker rodando (o comando monta o
 socket do Docker no container de testes). Leva cerca de 30 segundos.
@@ -109,7 +158,7 @@ npm test
 
 São testes de componente com Vitest e Testing Library (jsdom), com a camada de
 API mockada: cobrem a validação do formulário, as mensagens de erro vindas da
-API, a listagem e a tela de detalhes.
+API, a listagem, a tela de detalhes, a validação do arquivo do currículo e o preenchimento do formulário a partir do PDF.
 
 ## Tecnologias e versões
 
