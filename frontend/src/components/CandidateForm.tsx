@@ -5,11 +5,13 @@ import {
   type CandidateInput,
   type FieldErrors,
 } from '../api/candidates'
+import type { ExtractedResume } from '../api/resumes'
 import {
   emptyCandidateInput,
   normalizeCandidateInput,
   validateCandidate,
 } from '../candidateValidation'
+import ResumeImport from './ResumeImport'
 
 type CandidateFormProps = { onSaved: (candidate: Candidate) => void }
 
@@ -24,6 +26,8 @@ type FieldProps = {
 
 const networkErrorMessage =
   'Não foi possível salvar o cadastro. Verifique se a API está no ar e tente de novo.'
+
+const extractedFields = ['fullName', 'email', 'phone'] as const
 
 function Field({ id, label, value, messages, multiline, onChange }: FieldProps) {
   const errors = messages ?? []
@@ -68,6 +72,17 @@ function CandidateForm({ onSaved }: CandidateFormProps) {
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
+  // Só o que o PDF identificou sobrescreve: o resto fica como o usuário deixou.
+  function applyExtracted(fields: ExtractedResume) {
+    for (const field of extractedFields) {
+      const value = fields[field]
+
+      if (value) {
+        updateField(field, value)
+      }
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -102,51 +117,54 @@ function CandidateForm({ onSaved }: CandidateFormProps) {
   }
 
   return (
-    // noValidate desliga a validação do navegador, que mostraria mensagem própria, em inglês.
-    <form onSubmit={handleSubmit} noValidate>
-      {warning && <p className="banner banner-error">{warning}</p>}
+    <>
+      <ResumeImport onExtracted={applyExtracted} />
+      {/* noValidate desliga a validação do navegador, que mostraria mensagem própria, em inglês. */}
+      <form onSubmit={handleSubmit} noValidate>
+        {warning && <p className="banner banner-error">{warning}</p>}
 
-      <Field
-        id="fullName"
-        label="Nome completo *"
-        value={values.fullName}
-        messages={errors.fullName}
-        onChange={(value) => updateField('fullName', value)}
-      />
-      <Field
-        id="email"
-        label="E-mail *"
-        value={values.email}
-        messages={errors.email}
-        onChange={(value) => updateField('email', value)}
-      />
-      <Field
-        id="phone"
-        label="Telefone"
-        value={values.phone}
-        messages={errors.phone}
-        onChange={(value) => updateField('phone', value)}
-      />
-      <Field
-        id="areaOfInterest"
-        label="Área ou cargo de interesse"
-        value={values.areaOfInterest}
-        messages={errors.areaOfInterest}
-        onChange={(value) => updateField('areaOfInterest', value)}
-      />
-      <Field
-        id="professionalSummary"
-        label="Resumo profissional"
-        value={values.professionalSummary}
-        messages={errors.professionalSummary}
-        multiline
-        onChange={(value) => updateField('professionalSummary', value)}
-      />
+        <Field
+          id="fullName"
+          label="Nome completo *"
+          value={values.fullName}
+          messages={errors.fullName}
+          onChange={(value) => updateField('fullName', value)}
+        />
+        <Field
+          id="email"
+          label="E-mail *"
+          value={values.email}
+          messages={errors.email}
+          onChange={(value) => updateField('email', value)}
+        />
+        <Field
+          id="phone"
+          label="Telefone"
+          value={values.phone}
+          messages={errors.phone}
+          onChange={(value) => updateField('phone', value)}
+        />
+        <Field
+          id="areaOfInterest"
+          label="Área ou cargo de interesse"
+          value={values.areaOfInterest}
+          messages={errors.areaOfInterest}
+          onChange={(value) => updateField('areaOfInterest', value)}
+        />
+        <Field
+          id="professionalSummary"
+          label="Resumo profissional"
+          value={values.professionalSummary}
+          messages={errors.professionalSummary}
+          multiline
+          onChange={(value) => updateField('professionalSummary', value)}
+        />
 
-      <button type="submit" disabled={submitting}>
-        {submitting ? 'Salvando...' : 'Salvar'}
-      </button>
-    </form>
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Salvando...' : 'Salvar'}
+        </button>
+      </form>
+    </>
   )
 }
 

@@ -126,3 +126,30 @@ dd {
   margin: 0;
   white-space: pre-wrap;
 }
+
+.resume-import {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 40rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.resume-import h3 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.resume-import p {
+  margin: 0;
+}
+
+.resume-import .hint {
+  font-size: 0.875rem;
+}
+
+.resume-import .banner {
+  margin-top: 0.5rem;
+}
