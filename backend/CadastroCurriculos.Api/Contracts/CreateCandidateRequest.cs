@@ -12,7 +12,7 @@ public class CreateCandidateRequest
     public string? FullName { get; init => field = value?.Trim(); }
 
     [Required(ErrorMessage = "Informe o e-mail.")]
-    [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Informe um e-mail válido.")]
+    [SafeRegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Informe um e-mail válido.")]
     [MaxLength(Candidate.EmailMaxLength, ErrorMessage = "O e-mail deve ter no máximo {1} caracteres.")]
     public string? Email { get; init => field = value?.Trim().ToLowerInvariant(); }
 

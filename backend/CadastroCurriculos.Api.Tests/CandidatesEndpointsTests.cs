@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -51,7 +52,10 @@ public class CandidatesEndpointsTests
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<CandidateResponse>(CancellationToken);
         Assert.NotNull(created);
-        Assert.Equal($"/api/candidates/{created.Id}", response.Headers.Location?.AbsolutePath);
+        // Location relativo (sem esquema/host): atrás do Nginx (porta 3000) ou do proxy do
+        // Vite, um Location absoluto sairia com o host errado (Nginx derruba a porta do
+        // $host) ou com uma origem diferente da que respondeu.
+        Assert.Equal($"/api/candidates/{created.Id}", response.Headers.Location?.OriginalString);
         Assert.NotEqual(999999, created.Id);
         Assert.True(created.CreatedAt > DateTimeOffset.UtcNow.AddMinutes(-5));
         Assert.Equal("Maria Souza", created.FullName);
@@ -141,6 +145,21 @@ public class CandidatesEndpointsTests
         var response = await PostCandidate(payload);
 
         await AssertValidationError(response, HttpStatusCode.BadRequest, field, expectedMessage);
+    }
+
+    [Fact]
+    public async Task Post_WithMaliciouslyLongInvalidEmail_ReturnsBadRequestQuickly()
+    {
+        // Regex com backtracking pode levar segundos (ou estourar o timeout padrão de 2s
+        // e virar 500) num e-mail inválido longo o bastante. A validação precisa ser O(n).
+        var email = "a@" + new string('.', 200_000) + "@";
+
+        var stopwatch = Stopwatch.StartNew();
+        var response = await PostCandidate(new { fullName = "Maria Souza", email });
+        stopwatch.Stop();
+
+        await AssertValidationError(response, HttpStatusCode.BadRequest, "email", "O e-mail deve ter no máximo 254 caracteres.");
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(1), $"Validação demorou {stopwatch.Elapsed}.");
     }
 
     [Fact]

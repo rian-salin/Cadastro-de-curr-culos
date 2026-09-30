@@ -82,6 +82,11 @@ execução sobe um SQL Server descartável via Testcontainers e aplica as
 migrations reais, então é preciso ter o Docker rodando (o comando monta o
 socket do Docker no container de testes). Leva cerca de 30 segundos.
 
+`make test` foi testado em Linux com Docker Engine (usa `stat -c`,
+`--network host` e o grupo do socket do Docker, específicos de Linux). Em
+outro sistema, rode `dotnet test backend/CadastroCurriculos.sln` diretamente
+com o SDK .NET 10 e o Docker Desktop instalados.
+
 ## Tecnologias e versões
 
 | Camada | Tecnologia | Versão |

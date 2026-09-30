@@ -52,7 +52,10 @@ public class CandidatesController : ControllerBase
                 modelStateDictionary: ModelState);
         }
 
-        return CreatedAtAction(nameof(GetById), new { id = candidate.Id }, CandidateResponse.FromEntity(candidate));
+        // Location relativo (Url.Action, sem protocol/host): CreatedAtAction geraria um
+        // Location absoluto a partir do header Host da requisição, que sai errado atrás
+        // de um proxy reverso (o Nginx do Compose derruba a porta do $host).
+        return Created(Url.Action(nameof(GetById), new { id = candidate.Id }), CandidateResponse.FromEntity(candidate));
     }
 
     [HttpGet]
