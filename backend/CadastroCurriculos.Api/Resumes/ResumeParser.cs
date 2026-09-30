@@ -26,8 +26,10 @@ public static partial class ResumeParser
     [GeneratedRegex(@"[\w.+-]+@[\w-]+(\.[\w-]+)+")]
     private static partial Regex EmailPattern();
 
-    // O DDD obrigatório é o que separa telefone de intervalo de anos, CEP e CPF.
-    [GeneratedRegex(@"(?<!\d)(?:\+?55[\s-]?)?\(?\d{2}\)?[\s-]?9?\d{4}[\s-]?\d{4}(?!\d)")]
+    // O DDD obrigatório é o que separa telefone de intervalo de anos, CEP e CPF. Os separadores
+    // são só horizontais (\p{Zs} inclui o espaço sem quebra): \s juntaria números de linhas
+    // diferentes e deixaria uma quebra de linha, invisível no campo, dentro do telefone.
+    [GeneratedRegex(@"(?<!\d)(?:\+?55[\p{Zs}-]?)?\(?\d{2}\)?[\p{Zs}-]?9?\d{4}[\p{Zs}-]?\d{4}(?!\d)")]
     private static partial Regex PhonePattern();
 
     [GeneratedRegex(@"^nome(\s+completo)?\s*:\s*(?<value>.+)$", RegexOptions.IgnoreCase)]
@@ -47,7 +49,7 @@ public static partial class ResumeParser
         return new ParsedResume(
             FindName(text),
             email.Success ? email.Value.ToLowerInvariant() : null,
-            phone.Success ? phone.Value : null);
+            phone.Success ? WhitespacePattern().Replace(phone.Value, " ") : null);
     }
 
     private static string? FindName(string text)

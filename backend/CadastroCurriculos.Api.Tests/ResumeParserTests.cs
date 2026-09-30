@@ -51,6 +51,22 @@ public class ResumeParserTests
         Assert.Null(ResumeParser.Parse(text).Phone);
     }
 
+    [Theory]
+    [InlineData("Tel (11)\n98888-7777")]
+    [InlineData("Av Paulista, 15\n1234-5678")]
+    public void Parse_DoesNotJoinPhoneAcrossLines(string text)
+    {
+        Assert.Null(ResumeParser.Parse(text).Phone);
+    }
+
+    [Fact]
+    public void Parse_NormalizesNonBreakingSpacesInPhone()
+    {
+        var result = ResumeParser.Parse("Tel: +55 11 98888-7777");
+
+        Assert.Equal("+55 11 98888-7777", result.Phone);
+    }
+
     [Fact]
     public void Parse_TakesFirstLineThatLooksLikeName()
     {
