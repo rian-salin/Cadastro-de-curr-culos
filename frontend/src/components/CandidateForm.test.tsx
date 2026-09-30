@@ -78,7 +78,45 @@ describe('CandidateForm', () => {
       await screen.findByText('Já existe um candidato com este e-mail.'),
     ).toBeInTheDocument()
     expect(screen.getByText('Candidato já cadastrado.')).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail *')).toHaveAccessibleDescription(
+      'Já existe um candidato com este e-mail.',
+    )
     expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('mostra o título mesmo sem nenhum campo correspondente', async () => {
+    createCandidateMock.mockResolvedValue({
+      status: 'invalid',
+      title: 'Um ou mais campos são inválidos.',
+      fieldErrors: {},
+    })
+    const user = userEvent.setup()
+    const onSaved = renderForm()
+
+    await fillRequiredFields(user)
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    expect(
+      await screen.findByText('Um ou mais campos são inválidos.'),
+    ).toBeInTheDocument()
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('normaliza antes de validar o limite de caracteres', async () => {
+    createCandidateMock.mockResolvedValue({ status: 'created', candidate })
+    const user = userEvent.setup()
+    const onSaved = renderForm()
+
+    const paddedName = `  ${'a'.repeat(150)}  `
+    await user.click(screen.getByLabelText('Nome completo *'))
+    await user.paste(paddedName)
+    await user.type(screen.getByLabelText('E-mail *'), 'maria@example.com')
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(candidate))
+    expect(createCandidateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ fullName: 'a'.repeat(150) }),
+    )
   })
 
   it('avisa da falha de rede e preserva o que foi digitado', async () => {

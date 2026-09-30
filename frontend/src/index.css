@@ -2,8 +2,8 @@
   color-scheme: light dark;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   --border: color-mix(in srgb, currentColor 20%, transparent);
-  --error: #b3261e;
-  --success: #1b5e20;
+  --error: light-dark(#b3261e, #ff8a80);
+  --success: light-dark(#1b5e20, #81c784);
 }
 
 body {
