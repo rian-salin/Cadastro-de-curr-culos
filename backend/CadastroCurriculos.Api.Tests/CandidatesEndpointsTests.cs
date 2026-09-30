@@ -185,6 +185,29 @@ public class CandidatesEndpointsTests
         Assert.Equal("Candidato já cadastrado.", problem.Title);
     }
 
+    [Fact]
+    public async Task GetAll_ReturnsSummariesNewestFirst()
+    {
+        var older = await CreateCandidate(new { fullName = "Primeiro", email = UniqueEmail(), phone = "11 9999-0000", professionalSummary = "Resumo" });
+        var newer = await CreateCandidate(new { fullName = "Segundo", email = UniqueEmail() });
+
+        var response = await _client.GetAsync("/api/candidates", CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var items = await response.Content.ReadFromJsonAsync<JsonElement[]>(CancellationToken);
+        Assert.NotNull(items);
+        var ids = items.Select(item => item.GetProperty("id").GetInt32()).ToList();
+        Assert.Contains(older.Id, ids);
+        Assert.Contains(newer.Id, ids);
+        Assert.True(ids.IndexOf(newer.Id) < ids.IndexOf(older.Id), "O candidato mais recente deve vir primeiro.");
+
+        var olderItem = items.Single(item => item.GetProperty("id").GetInt32() == older.Id);
+        Assert.Equal("Primeiro", olderItem.GetProperty("fullName").GetString());
+        Assert.Equal(older.Email, olderItem.GetProperty("email").GetString());
+        Assert.False(olderItem.TryGetProperty("phone", out _));
+        Assert.False(olderItem.TryGetProperty("professionalSummary", out _));
+    }
+
     private static async Task<ValidationProblemDetails> AssertValidationError(
         HttpResponseMessage response, HttpStatusCode expectedStatus, string field, string expectedMessage)
     {

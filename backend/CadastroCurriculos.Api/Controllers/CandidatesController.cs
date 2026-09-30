@@ -55,6 +55,19 @@ public class CandidatesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = candidate.Id }, CandidateResponse.FromEntity(candidate));
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<CandidateSummaryResponse>>> GetAll(CancellationToken cancellationToken)
+    {
+        var candidates = await _dbContext.Candidates
+            .AsNoTracking()
+            .OrderByDescending(c => c.CreatedAt)
+            .ThenByDescending(c => c.Id)
+            .Select(c => new CandidateSummaryResponse(c.Id, c.FullName, c.Email, c.AreaOfInterest, c.CreatedAt))
+            .ToListAsync(cancellationToken);
+
+        return Ok(candidates);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<CandidateResponse>> GetById(int id, CancellationToken cancellationToken)
     {
