@@ -90,7 +90,7 @@ function ResumeImport({ onExtracted }: ResumeImportProps) {
 
   return (
     <section className="resume-import">
-      <h3>Tem o currículo em PDF? (opcional)</h3>
+      <h3>Tem o currículo em PDF?</h3>
       <label htmlFor="resume-file">Currículo em PDF</label>
       <input
         id="resume-file"
