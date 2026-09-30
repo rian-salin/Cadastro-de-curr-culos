@@ -7,12 +7,22 @@ NUGET_CACHE ?= $(HOME)/.nuget/packages
 
 # Container descartável do SDK .NET 10 com backend/ montado em /src. Roda com o
 # usuário atual para os arquivos gerados (migrations, bin/obj) não ficarem com dono root.
-DOTNET_RUN = docker run --rm \
+DOTNET_CONTAINER = docker run --rm \
     --user $(shell id -u):$(shell id -g) \
     -e HOME=/tmp -e DOTNET_NOLOGO=1 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     -e DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK=1 \
     -e NUGET_PACKAGES=/nuget -v "$(NUGET_CACHE):/nuget" \
-    -v "$(CURDIR)/backend:/src" -w /src \
+    -v "$(CURDIR)/backend:/src" -w /src
+DOTNET_RUN = $(DOTNET_CONTAINER) $(DOTNET_IMAGE)
+
+# Os testes sobem um SQL Server via Testcontainers como container irmão no host:
+# precisam do socket do Docker (e do grupo dono dele) e da rede do host para
+# alcançar a porta mapeada do banco.
+DOCKER_SOCKET ?= /var/run/docker.sock
+DOTNET_TEST_RUN = $(DOTNET_CONTAINER) \
+    -v "$(DOCKER_SOCKET):/var/run/docker.sock" \
+    --group-add $(shell stat -c %g $(DOCKER_SOCKET)) \
+    --network host -e TESTCONTAINERS_HOST_OVERRIDE=localhost \
     $(DOTNET_IMAGE)
 
 .PHONY: help env up up-d down stop restart build rebuild logs ps clean api web db sh-api sh-web sh-db migration test
@@ -77,6 +87,6 @@ migration: ## Cria uma migration do EF Core (use NAME=NomeDaMigration)
 	@mkdir -p "$(NUGET_CACHE)"
 	$(DOTNET_RUN) sh -c 'dotnet tool restore && dotnet restore CadastroCurriculos.Api && dotnet ef migrations add $(NAME) --project CadastroCurriculos.Api'
 
-test: ## Roda os testes do backend
+test: ## Roda os testes do backend (sobe um SQL Server descartável via Docker)
 	@mkdir -p "$(NUGET_CACHE)"
-	$(DOTNET_RUN) dotnet test CadastroCurriculos.sln
+	$(DOTNET_TEST_RUN) dotnet test CadastroCurriculos.sln
