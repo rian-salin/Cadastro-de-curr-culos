@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { extractResume, type ExtractedResume } from '../api/resumes'
 import { validateResumeFile } from '../resumeFileValidation'
 
@@ -54,6 +54,9 @@ function describeResult(fields: ExtractedResume): ResultMessage {
 
 function ResumeImport({ onExtracted }: ResumeImportProps) {
   const [state, setState] = useState<ImportState>({ status: 'idle' })
+  // Descarta a extração de um arquivo anterior que termine depois de uma
+  // seleção mais recente.
+  const requestIdRef = useRef(0)
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -63,6 +66,8 @@ function ResumeImport({ onExtracted }: ResumeImportProps) {
     if (!file) {
       return
     }
+
+    const requestId = ++requestIdRef.current
 
     const invalidMessage = validateResumeFile(file)
 
@@ -76,6 +81,10 @@ function ResumeImport({ onExtracted }: ResumeImportProps) {
     try {
       const result = await extractResume(file)
 
+      if (requestIdRef.current !== requestId) {
+        return
+      }
+
       if (result.status === 'rejected') {
         setState({ status: 'error', message: result.message })
         return
@@ -84,6 +93,10 @@ function ResumeImport({ onExtracted }: ResumeImportProps) {
       onExtracted(result.fields)
       setState({ status: 'done', ...describeResult(result.fields) })
     } catch {
+      if (requestIdRef.current !== requestId) {
+        return
+      }
+
       setState({ status: 'error', message: networkErrorMessage })
     }
   }

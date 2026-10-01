@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { fetchCandidate, type Candidate } from '../api/candidates'
 import { formatDateTime } from '../formatDateTime'
@@ -13,15 +13,29 @@ function CandidateDetailPage() {
   // A rota /candidates/:id só casa com o parâmetro presente.
   const { id } = useParams()
   const [state, setState] = useState<LoadState>({ status: 'loading' })
+  // Descarta a resposta de uma chamada antiga (troca de :id ou retry) que
+  // termine depois de uma mais recente.
+  const requestIdRef = useRef(0)
 
   const load = useCallback(() => {
+    const requestId = ++requestIdRef.current
     setState({ status: 'loading' })
 
     fetchCandidate(id!)
-      .then((candidate) =>
-        setState(candidate ? { status: 'loaded', candidate } : { status: 'notFound' }),
-      )
-      .catch(() => setState({ status: 'error' }))
+      .then((candidate) => {
+        if (requestIdRef.current !== requestId) {
+          return
+        }
+
+        setState(candidate ? { status: 'loaded', candidate } : { status: 'notFound' })
+      })
+      .catch(() => {
+        if (requestIdRef.current !== requestId) {
+          return
+        }
+
+        setState({ status: 'error' })
+      })
   }, [id])
 
   useEffect(load, [load])

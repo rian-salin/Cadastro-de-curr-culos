@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { fetchCandidates, type CandidateSummary } from '../api/candidates'
 import { formatDateTime } from '../formatDateTime'
@@ -14,6 +14,9 @@ function CandidateListPage() {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const location = useLocation()
   const navigate = useNavigate()
+  // Descarta a resposta de uma chamada antiga (ex.: retry) que termine
+  // depois de uma mais recente.
+  const requestIdRef = useRef(0)
   // Lido uma vez para o estado local; o registro do histórico é limpo abaixo,
   // para um F5 não repetir a mensagem.
   const [savedCandidateName] = useState(
@@ -27,11 +30,24 @@ function CandidateListPage() {
   }, [location.pathname, location.state, navigate])
 
   const load = useCallback(() => {
+    const requestId = ++requestIdRef.current
     setState({ status: 'loading' })
 
     fetchCandidates()
-      .then((candidates) => setState({ status: 'loaded', candidates }))
-      .catch(() => setState({ status: 'error' }))
+      .then((candidates) => {
+        if (requestIdRef.current !== requestId) {
+          return
+        }
+
+        setState({ status: 'loaded', candidates })
+      })
+      .catch(() => {
+        if (requestIdRef.current !== requestId) {
+          return
+        }
+
+        setState({ status: 'error' })
+      })
   }, [])
 
   useEffect(load, [load])
