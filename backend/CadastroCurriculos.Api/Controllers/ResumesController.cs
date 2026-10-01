@@ -40,9 +40,9 @@ public class ResumesController : ControllerBase
             return InvalidFile("O arquivo deve ter no máximo 5 MB.");
         }
 
-        using var buffer = new MemoryStream((int)file.Length);
-        await file.CopyToAsync(buffer, cancellationToken);
-        var bytes = buffer.ToArray();
+        var bytes = new byte[file.Length];
+        await using var stream = file.OpenReadStream();
+        await stream.ReadExactlyAsync(bytes, cancellationToken);
 
         // Confere a assinatura do conteúdo: Content-Type e extensão são o cliente quem define.
         if (!bytes.AsSpan().StartsWith(PdfSignature))
