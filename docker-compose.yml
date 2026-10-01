@@ -1,9 +1,20 @@
+# Stack completa: SQL Server + API + frontend.
+#
+#   docker compose up --build
+#
+# As variáveis abaixo têm um valor padrão de desenvolvimento, para um clone novo
+# subir sem nenhum passo anterior. Um .env na raiz (copie de .env.example)
+# sobrescreve qualquer uma delas.
+#
+# Atenção: o SQL Server só define a senha do `sa` na primeira subida, quando
+# cria o volume. Trocar DB_PASSWORD depois disso exige recriar o volume
+# (`docker compose down -v`, que apaga os dados).
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2025-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD — copie .env.example para .env}
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-ChangeMe_2026!}
       MSSQL_PID: Developer
     ports:
       - "1433:1433"
@@ -19,8 +30,8 @@ services:
   api:
     build: ./backend/CadastroCurriculos.Api
     environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      ConnectionStrings__Default: "Server=db,1433;Database=${DB_NAME:?defina DB_NAME — copie .env.example para .env};User Id=sa;Password=${DB_PASSWORD:?defina DB_PASSWORD — copie .env.example para .env};TrustServerCertificate=True;Connect Timeout=5;"
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__Default: "Server=db,1433;Database=${DB_NAME:-CadastroCurriculosDb};User Id=sa;Password=${DB_PASSWORD:-ChangeMe_2026!};TrustServerCertificate=True;Connect Timeout=5;"
     ports:
       - "5000:5000"
     depends_on:
