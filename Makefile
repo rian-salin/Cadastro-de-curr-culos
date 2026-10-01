@@ -1,42 +1,40 @@
 .DEFAULT_GOAL := help
 COMPOSE ?= docker compose
+COMPOSE_TEST ?= docker compose -f docker-compose.test.yml
 SERVICE ?=
 NAME ?=
 DOTNET_IMAGE ?= mcr.microsoft.com/dotnet/sdk:10.0
 NUGET_CACHE ?= $(HOME)/.nuget/packages
 
-# Container descartável do SDK .NET 10 com backend/ montado em /src. Roda com o
-# usuário atual para os arquivos gerados (migrations, bin/obj) não ficarem com dono root.
-DOTNET_CONTAINER = docker run --rm \
+# Atalhos para Linux, macOS, WSL e Git Bash. No PowerShell, use os comandos
+# `docker compose` diretamente (o README lista o equivalente de cada alvo).
+
+# Container descartável do SDK .NET 10 com o repositório montado em /repo. Roda com
+# o usuário atual para os arquivos gerados (migrations, bin/obj) não ficarem com dono root.
+DOTNET_RUN = docker run --rm \
     --user $(shell id -u):$(shell id -g) \
     -e HOME=/tmp -e DOTNET_NOLOGO=1 -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     -e DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK=1 \
     -e NUGET_PACKAGES=/nuget -v "$(NUGET_CACHE):/nuget" \
-    -v "$(CURDIR)/backend:/src" -w /src
-DOTNET_RUN = $(DOTNET_CONTAINER) $(DOTNET_IMAGE)
-
-# Os testes sobem um SQL Server via Testcontainers como container irmão no host:
-# precisam do socket do Docker (e do grupo dono dele) e da rede do host para
-# alcançar a porta mapeada do banco.
-DOCKER_SOCKET ?= /var/run/docker.sock
-DOTNET_TEST_RUN = $(DOTNET_CONTAINER) \
-    -v "$(DOCKER_SOCKET):/var/run/docker.sock" \
-    --group-add $(shell stat -c %g $(DOCKER_SOCKET)) \
-    --network host -e TESTCONTAINERS_HOST_OVERRIDE=localhost \
+    -v "$(CURDIR):/repo" -w /repo/backend \
     $(DOTNET_IMAGE)
 
-.PHONY: help env up up-d down stop restart build rebuild logs ps clean api web db sh-api sh-web sh-db migration test
+.PHONY: help setup env up up-d down stop restart build rebuild logs ps clean \
+        api web db sh-api sh-web sh-db migration schema test test-api test-web
 
 help: ## Lista os comandos disponíveis
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+
+setup: ## Configura e sobe tudo do zero, esperando a API responder
+	./setup.sh
 
 env: ## Cria o .env a partir do .env.example (se não existir)
 	@test -f .env || (cp .env.example .env && echo ".env criado — ajuste os valores")
 
-up: env ## Sobe os serviços em primeiro plano (build incluso)
+up: ## Sobe os serviços em primeiro plano (build incluso)
 	$(COMPOSE) up --build
 
-up-d: env ## Sobe os serviços em segundo plano (build incluso)
+up-d: ## Sobe os serviços em segundo plano (build incluso)
 	$(COMPOSE) up --build -d
 
 down: ## Para e remove os containers
@@ -82,11 +80,26 @@ sh-web: ## Abre um shell no container do frontend
 sh-db: ## Abre um shell no container do banco
 	$(COMPOSE) exec db bash
 
-migration: ## Cria uma migration do EF Core (use NAME=NomeDaMigration)
+test: test-api test-web ## Roda todos os testes (backend + frontend)
+
+test-api: ## Testes do backend em container (sobe um SQL Server descartável)
+	$(COMPOSE_TEST) run --rm tests
+
+test-web: ## Testes do frontend em container (Vitest)
+	$(COMPOSE_TEST) run --rm tests-web
+
+migration: ## Cria uma migration do EF Core (use NAME=NomeDaMigration) e regenera o schema.sql
 	@test -n "$(NAME)" || (echo "Informe o nome: make migration NAME=NomeDaMigration" && exit 1)
 	@mkdir -p "$(NUGET_CACHE)"
 	$(DOTNET_RUN) sh -c 'dotnet tool restore && dotnet restore CadastroCurriculos.Api && dotnet ef migrations add $(NAME) --project CadastroCurriculos.Api'
+	@$(MAKE) --no-print-directory schema
 
-test: ## Roda os testes do backend (sobe um SQL Server descartável via Docker)
+# O `dotnet ef` escreve o script com BOM, e o sqlcmd não o reconhece quando lê o
+# script da entrada padrão. O sed roda dentro do container, então o alvo não
+# depende do sed do host (o do macOS não aceita `-i` sem argumento).
+schema: ## Regenera database/schema.sql a partir das migrations
 	@mkdir -p "$(NUGET_CACHE)"
-	$(DOTNET_TEST_RUN) dotnet test CadastroCurriculos.sln
+	$(DOTNET_RUN) sh -c 'dotnet tool restore >/dev/null \
+	    && dotnet ef migrations script --idempotent --project CadastroCurriculos.Api --output /repo/database/schema.sql \
+	    && sed -i "1s/^\xef\xbb\xbf//" /repo/database/schema.sql'
+	@echo "database/schema.sql regenerado"
