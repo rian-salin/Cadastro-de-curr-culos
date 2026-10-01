@@ -1,0 +1,32 @@
+# Testes do backend em container, sem precisar do SDK .NET na máquina.
+#
+#   docker compose -f docker-compose.test.yml run --rm tests
+#
+# Os testes sobem um SQL Server descartável via Testcontainers. Esse banco nasce
+# como container irmão no host (daí o socket do Docker montado), e os testes o
+# alcançam pela porta publicada no host — endereçada por `host.docker.internal`,
+# que o Docker Desktop (Windows/macOS) já resolve e o `extra_hosts` abaixo cobre
+# no Linux. Com isso o comando é o mesmo nos três sistemas.
+
+# Projeto próprio: os containers de teste não se misturam com os do `up`.
+name: cadastro-curriculos-tests
+
+services:
+  tests:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.tests
+    environment:
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Testes do frontend (Vitest), sem precisar do Node.js na máquina.
+  #
+  #   docker compose -f docker-compose.test.yml run --rm tests-web
+  tests-web:
+    build:
+      context: ./frontend
+      target: test

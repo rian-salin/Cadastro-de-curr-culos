@@ -1,0 +1,20 @@
+# Imagem de testes do backend: o código é copiado (não montado), para a execução
+# não depender de UID/GID nem de caminho do host e funcionar igual em qualquer SO.
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+ENV DOTNET_NOLOGO=1 \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_SKIP_WORKLOAD_INTEGRITY_CHECK=1
+
+WORKDIR /src
+
+# Restore em camada própria: só refaz o download dos pacotes quando um .csproj muda.
+COPY CadastroCurriculos.sln ./
+COPY CadastroCurriculos.Api/CadastroCurriculos.Api.csproj CadastroCurriculos.Api/
+COPY CadastroCurriculos.Api.Tests/CadastroCurriculos.Api.Tests.csproj CadastroCurriculos.Api.Tests/
+RUN dotnet restore CadastroCurriculos.sln
+
+COPY . .
+RUN dotnet build CadastroCurriculos.sln --no-restore
+
+ENTRYPOINT ["dotnet", "test", "CadastroCurriculos.sln", "--no-build"]
