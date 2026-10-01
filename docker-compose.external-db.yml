@@ -1,0 +1,20 @@
+# Usa um SQL Server que já existe, no lugar do container `db`.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.external-db.yml up --build
+#
+# Requer DB_CONNECTION_STRING no .env (há um exemplo comentado em .env.example).
+# A API aplica as migrations na subida, então não é preciso rodar
+# database/schema.sql antes — só a base precisa existir.
+services:
+  api:
+    environment:
+      ConnectionStrings__Default: ${DB_CONNECTION_STRING:?defina DB_CONNECTION_STRING no .env — veja o exemplo em .env.example}
+    # Sem o container `db` não há healthcheck local para esperar.
+    depends_on: !reset []
+    # Deixa `host.docker.internal` resolver também no Linux, para alcançar um
+    # SQL Server rodando na própria máquina.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # O container do SQL Server sai do projeto: o banco é externo.
+  db: !reset null
